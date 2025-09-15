@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CredChain — Real Wallet Data (Sepolia)</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="card">
+    <h1>CredChain</h1>
+    <p class="muted">Advanced on-chain credit scoring with real wallet data — Sepolia</p>
+
+    <div style="margin-top:10px">
+      <button id="connectBtn">Connect Wallet</button>
+      <span id="netHint" class="muted" style="margin-left:12px"></span>
+      <div style="float:right"><span id="status" class="muted"></span></div>
+    </div>
+
+    <div id="main" style="display:none;margin-top:16px">
+      <div class="muted">Wallet: <strong id="walletAddr"></strong></div>
+
+      <div id="scoreBox" class="box">Score will appear here after analysis</div>
+
+      <div style="margin-top:12px">
+        <button id="btnStake">Stake ETH</button>
+        <button id="btnBorrow" class="ghost">Borrow</button>
+        <button id="btnHash" class="ghost">Generate & Publish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAKE MODAL -->
+  <div id="stakeModal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-close="stakeModal">&times;</span>
+      <h3>Stake ETH (on-chain)</h3>
+      <p class="muted">Staking contract: <code id="contractAddr"></code></p>
+
+      <div class="grid2">
+        <div>
+          <label>Amount (ETH)</label>
+          <input id="stakeAmount" type="number" step="0.000001" placeholder="0.5">
+        </div>
+        <div>
+          <label>Lockup days (decimal allowed)</label>
+          <input id="stakeDays" type="number" step="0.0000001" placeholder="30">
+        </div>
+      </div>
+
+      <div id="stakePreview" class="status-line"></div>
+
+      <div style="margin-top:12px">
+        <button id="stakeConfirm">Stake → Contract</button>
+        <button id="stakeWithdraw" class="ghost">Withdraw (if unlocked)</button>
+      </div>
+
+      <div id="stakeStatus" class="box muted"></div>
+
+      <div style="margin-top:14px">
+        <p class="muted">Your recorded stake (from contract):</p>
+        <div id="stakeInfo" class="box muted">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BORROW MODAL -->
+  <div id="borrowModal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-close="borrowModal">&times;</span>
+      <h3>Borrow Simulator (Proposed Contract)</h3>
+
+      <div class="grid2">
+        <div>
+          <label>Request Amount (ETH)</label>
+          <input id="borrowAmount" type="number" step="0.0001" placeholder="0.1">
+        </div>
+        <div>
+          <label>Deposit / Collateral (ETH)</label>
+          <input id="borrowDeposit" type="number" step="0.0001" placeholder="0">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>Loan Term (years)</label>
+          <input id="borrowYears" type="number" step="0.1" value="1">
+        </div>
+        <div>
+          <label>Payments per Year</label>
+          <select id="paymentsPerYear">
+            <option value="1">Annual</option>
+            <option value="2">Semi-annual</option>
+            <option value="4">Quarterly</option>
+            <option value="12" selected>Monthly</option>
+            <option value="365">Daily</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Recipient Wallet (where proposal will be published)</label>
+      <input id="borrowRecipient" type="text" placeholder="0xRecipientAddress">
+
+      <div class="mutebox" id="loanHintBox">Loan hint will appear here as you type...</div>
+
+      <div style="margin-top:12px">
+        <button id="borrowSignBtn">Generate, Sign & Publish Proposal</button>
+      </div>
+
+      <div id="borrowResult" class="box muted"></div>
+    </div>
+  </div>
+
+  <!-- HASH MODAL -->
+  <div id="hashModal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-close="hashModal">&times;</span>
+      <h3>Publish Full Credit Report</h3>
+
+      <p class="muted">This displays the full report (detailed metrics). If you publish, a readable UTF-8 hex input containing the report will be sent as a 0-ETH transaction (decodable on Etherscan).</p>
+
+      <textarea id="fullReport" rows="12" style="width:100%;font-family:monospace"></textarea>
+
+      <div style="margin-top:12px">
+        <button id="publishBtn">Generate & Publish</button>
+      </div>
+
+      <div id="hashStatus" class="box muted"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

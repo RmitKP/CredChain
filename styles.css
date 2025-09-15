@@ -1,0 +1,115 @@
+body {
+  font-family: Inter, Arial;
+  background: #f4f6f9;
+  display: flex;
+  justify-content: center;
+  padding: 36px;
+}
+
+.card {
+  width: 820px;
+  background: #fff;
+  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+h1 {
+  margin: 0;
+}
+
+.muted {
+  color: #666;
+  font-size: 13px;
+}
+
+button {
+  background: #111827;
+  color: #fff;
+  border: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 6px 6px 6px 0;
+}
+
+button.ghost {
+  background: transparent;
+  color: #111827;
+  border: 1px solid #ddd;
+}
+
+.box {
+  background: #f9fafb;
+  padding: 14px;
+  border-radius: 8px;
+  margin-top: 14px;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1200;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.modal-content {
+  background: #fff;
+  width: 640px;
+  max-width: 95%;
+  margin: 4% auto;
+  padding: 18px;
+  border-radius: 12px;
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #444;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+  margin-top: 6px;
+}
+
+.status-line {
+  font-size: 13px;
+  margin-top: 8px;
+  color: #111827;
+}
+
+.mutebox {
+  background: #fbfbfc;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+  color: #666;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
