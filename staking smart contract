@@ -1,0 +1,41 @@
+// Smart contract address already deployed on eth sepolia at 0x968EB460e2c356F849631f2aa206bB0Ebf87173c
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract SimpleStaking {
+    struct Stake {
+        uint256 amount;
+        uint256 unlockTime;
+    }
+
+    mapping(address => Stake) public stakes;
+
+    event Staked(address indexed user, uint256 amount, uint256 unlockTime);
+    event Withdrawn(address indexed user, uint256 amount);
+
+    function stake(uint256 daysLock) external payable {
+        require(msg.value > 0, "Must stake ETH");
+        require(stakes[msg.sender].amount == 0, "Already staking");
+
+        uint256 unlock = block.timestamp + (daysLock * 1 days);
+        stakes[msg.sender] = Stake(msg.value, unlock);
+
+        emit Staked(msg.sender, msg.value, unlock);
+    }
+
+    function withdraw() external {
+        Stake memory s = stakes[msg.sender];
+        require(s.amount > 0, "Nothing staked");
+        require(block.timestamp >= s.unlockTime, "Still locked");
+
+        delete stakes[msg.sender];
+        payable(msg.sender).transfer(s.amount);
+
+        emit Withdrawn(msg.sender, s.amount);
+    }
+
+    function getStake(address user) external view returns (uint256 amount, uint256 unlockTime) {
+        Stake memory s = stakes[user];
+        return (s.amount, s.unlockTime);
+    }
+}
