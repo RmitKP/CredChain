@@ -13,16 +13,18 @@ const SEPOLIA_CHAIN_ID = '0xaa36a7';
 let web3, contract, account;
 let lastReport = "", currentScore = 0;
 
-/* Small helpers */
-const $ = id => document.getElementById(id);
+const $ = id => document.getElementById(id);   // Shortcut for DOM access
+
+// Display small status messages with icons (info/success/error)
 function setSmallStatus(el, msg, type='info'){
   const icons = {info:'⏳', success:'✅', error:'❌'};
   el.innerText = `${icons[type]||''} ${msg}`;
 }
-function openModal(id){ $(id).style.display = 'block'; }
-function closeModal(id){ $(id).style.display = 'none'; }
+function openModal(id){ $(id).style.display = 'block'; }   // Open a modal window by ID
+function closeModal(id){ $(id).style.display = 'none'; }   // Close a modal window by ID
 
-/* Wire modal close buttons */
+// Global listener for modal close buttons.
+// Ensures any `[data-close]` element or `.close` button will close its parent modal.
 document.addEventListener('click', (e) => {
   if(e.target.matches('[data-close]') || e.target.classList.contains('close')) {
     const id = e.target.getAttribute('data-close') || e.target.parentElement?.getAttribute('data-close');
@@ -30,7 +32,11 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* INITIALIZE */
+// Initialize the dApp:
+// - Ensures MetaMask is present
+// - Creates Web3 and Contract instances
+// - Wires up all buttons and input events
+// - Attempts auto-connection if user already authorized
 async function init(){
   if(typeof window.ethereum === 'undefined'){
     alert('MetaMask is required.'); return;
@@ -39,42 +45,45 @@ async function init(){
   contract = new web3.eth.Contract(STAKING_ABI, STAKING_CONTRACT_ADDRESS);
   $('contractAddr') && ($('contractAddr').innerText = STAKING_CONTRACT_ADDRESS);
 
-  // buttons
+  // Main button handlers
   $('connectBtn').onclick = connectWallet;
   $('btnStake').onclick = () => openModal('stakeModal');
   $('btnBorrow').onclick = () => openModal('borrowModal');
   $('btnHash').onclick = () => { $('fullReport').value = lastReport; openModal('hashModal'); };
 
-  // stake modal actions
+  // Stake modal actions
   $('stakeConfirm').onclick = doStake;
   $('stakeWithdraw').onclick = doWithdraw;
   $('stakeAmount').oninput = previewStake;
   $('stakeDays').oninput = previewStake;
 
-  // borrow modal
+  // Borrow modal
   $('borrowSignBtn').onclick = doGenerateLoan;
   ['borrowAmount','borrowYears','paymentsPerYear','borrowDeposit'].forEach(id => {
     $(id).addEventListener('input', updateLoanHint);
     $(id).addEventListener('change', updateLoanHint);
   });
 
-  // publish modal
+  // Publish modal
   $('publishBtn').onclick = doPublish;
 
-  // try auto-connect if authorized
+  // Try auto-connect if already authorized in MetaMask
   try{
     const accounts = await web3.eth.getAccounts();
     if(accounts && accounts.length>0){ account = accounts[0]; afterConnect(); }
   }catch(e){}
 }
 
-/* CONNECT & CHAIN CHECK */
+// Request MetaMask connection and ensure Sepolia network.
+// Automatically adds Sepolia if not already present in wallet.
 async function connectWallet(){
   try{
     setSmallStatus($('status'), 'Requesting wallet access...', 'info');
     const accts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     account = accts[0];
     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+    // If not Sepolia, try to switch or add it
     if(chainId !== SEPOLIA_CHAIN_ID){
       setSmallStatus($('status'), 'Switching to Sepolia...', 'info');
       try {
@@ -101,17 +110,20 @@ async function connectWallet(){
   }
 }
 
+// Called once wallet is successfully connected.
+// Shows UI, loads account info, analyzes wallet, and updates stake data.
 async function afterConnect(){
   $('main').style.display = 'block';
   $('walletAddr').innerText = account;
   setSmallStatus($('status'), 'Connected: ' + account, 'success');
 
-  // run analysis + load stake info
+  // Run wallet analysis and load staking data
   await analyzeWalletFull();
   await loadStakeInfo();
 }
 
-/* FETCH ETH PRICE (optional) */
+// Fetch ETH price from CoinGecko for USD conversion.
+// Optional but improves UX by giving users a familiar valuation metric.
 async function fetchEthPrice(){
   try{
     const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
@@ -120,7 +132,11 @@ async function fetchEthPrice(){
   } catch(e){ return null; }
 }
 
-/* MAIN: analyze wallet using Etherscan tx history */
+// Core wallet analyzer:
+// - Pulls transaction history from Etherscan
+// - Calculates financial health metrics (age, tx count, diversity, balance trends, gas efficiency, recency)
+// - Incorporates staking contract data
+// - Computes a credit score (0–100) and generates a detailed report
 async function analyzeWalletFull(){
   const box = $('scoreBox');
   setSmallStatus(box, 'Fetching transaction history from Etherscan...', 'info');
@@ -132,10 +148,10 @@ async function analyzeWalletFull(){
     const data = await resp.json();
 
     if(!data || data.status === '0' || !Array.isArray(data.result) || data.result.length === 0){
-      // no txs on Sepolia - fallback: use balance only
+      // No txs on Sepolia - fallback: use balance only
       const balWei = await web3.eth.getBalance(account);
       const balEth = parseFloat(web3.utils.fromWei(balWei, 'ether'));
-      const fallbackScore = Math.min(100, balEth * 12); // conservative
+      const fallbackScore = Math.min(100, balEth * 12);
       currentScore = Math.round(Math.min(100, fallbackScore * 1)); 
       const summary = `⭐ Credit Score: ${currentScore}/100 (Low — no Sepolia tx history)\nCurrent balance: ${balEth.toFixed(6)} ETH\nNote: No Sepolia transactions found. Score based on balance only.`;
       box.innerText = summary;
@@ -143,8 +159,8 @@ async function analyzeWalletFull(){
       return;
     }
 
-    const txs = data.result; // ascending
-    // compute metrics
+    const txs = data.result;
+    // Compute metrics
     const firstTxTs = Number(txs[0].timeStamp);
     const lastTxTs = Number(txs[txs.length-1].timeStamp);
     const nowSec = Date.now()/1000;
@@ -180,7 +196,7 @@ async function analyzeWalletFull(){
       if(tx.to && tx.to.toLowerCase() !== account.toLowerCase()) counterparties.add(tx.to.toLowerCase());
     }
 
-    // estimate contract interactions by sampling counterparties (limit so we don't spam node)
+    // Estimate contract interactions by sampling counterparties
     const cpArr = Array.from(counterparties);
     let contractInteractions = 0;
     const checkLimit = Math.min(cpArr.length, 20);
@@ -196,13 +212,13 @@ async function analyzeWalletFull(){
     }
 
     const avgGasGwei = gasCount ? (gasSum / gasCount) / 1e9 : 0;
-    const gasEfficiencyFactor = avgGasGwei ? Math.max(0, (100 / (avgGasGwei + 1))) : 1; // higher is better
+    const gasEfficiencyFactor = avgGasGwei ? Math.max(0, (100 / (avgGasGwei + 1))) : 1;
 
     const inflowOutflowRatio = (outflow === 0) ? inflow : (inflow / outflow);
     const lastActiveDaysAgo = (nowSec - lastTxTs) / (60*60*24);
     const recencyFactor = lastActiveDaysAgo <= 30 ? 1.08 : (lastActiveDaysAgo <= 90 ? 1.00 : (lastActiveDaysAgo <= 180 ? 0.95 : 0.85));
 
-    // current Sepolia balance
+    // Current Sepolia balance
     const currentBalWei = await web3.eth.getBalance(account);
     const currentBalance = parseFloat(web3.utils.fromWei(currentBalWei, 'ether'));
 
@@ -213,15 +229,15 @@ async function analyzeWalletFull(){
 
     // Now compute advanced multi-factor score (component caps)
     let score = 0;
-    score += Math.min(walletAgeYears * 6, 14);          // age (max 14)
-    score += Math.min(txCount / 20, 16);               // tx count (max 16)
-    score += Math.min(cpArr.length / 8, 12);           // counterparties diversity (max 12)
-    score += Math.min(totalVolume / 2, 14);            // total volume (max 14)
-    score += Math.min(inflowOutflowRatio * 6, 12);     // inflow/outflow ratio (max 12)
-    score += Math.min(maxBalance / 0.7, 12);           // peak balance (max 12)
-    score += Math.min(currentBalance / 0.25, 10);      // current balance cushion (max 10)
-    score += Math.min((gasEfficiencyFactor / 10), 6);  // gas efficiency (max 6)
-    score += Math.min(contractInteractions / 4, 8);    // contract interactions (max 8)
+    score += Math.min(walletAgeYears * 6, 14);         // Age (max 14)
+    score += Math.min(txCount / 20, 16);               // Tx count (max 16)
+    score += Math.min(cpArr.length / 8, 12);           // Counterparties diversity (max 12)
+    score += Math.min(totalVolume / 2, 14);            // Total volume (max 14)
+    score += Math.min(inflowOutflowRatio * 6, 12);     // Inflow/outflow ratio (max 12)
+    score += Math.min(maxBalance / 0.7, 12);           // Peak balance (max 12)
+    score += Math.min(currentBalance / 0.25, 10);      // Current balance cushion (max 10)
+    score += Math.min((gasEfficiencyFactor / 10), 6);  // Gas efficiency (max 6)
+    score += Math.min(contractInteractions / 4, 8);    // Contract interactions (max 8)
 
     // Apply recency multiplier
     score = score * recencyFactor;
@@ -250,8 +266,7 @@ Max observed balance: ${maxBalance.toFixed(6)} ETH
 Current Sepolia balance: ${currentBalance.toFixed(6)} ETH
 Avg gas (gwei, approx): ${avgGasGwei ? avgGasGwei.toFixed(1) : '—'}
 Contract interactions (est): ${contractInteractions}
-Last active: ${Math.round(lastActiveDaysAgo)} days ago
-`;
+Last active: ${Math.round(lastActiveDaysAgo)} days ago`;
 
     if(stakedAmount > 0){
       const unlockDate = stakedUnlock > 0 ? new Date(stakedUnlock * 1000).toLocaleString() : '—';
@@ -262,14 +277,14 @@ Last active: ${Math.round(lastActiveDaysAgo)} days ago
 
     report += `\nLoan hint:\n• Loan limit (approx): ${loanLimitEth.toFixed(6)} ETH (${loanLimitUSD} USD)\n• Suggested interest (annual): ${interestRate.toFixed(2)}%\n`;
 
-    // show report
+    // Show report
     $('scoreBox').innerText = report;
     lastReport = report;
-    // small network hint color
+    // Small network hint color
     $('netHint').style.color = currentScore >= 75 ? '#059669' : (currentScore >= 45 ? '#D97706' : '#DC2626');
     $('netHint').innerText = `Evaluation: ${currentScore >= 75 ? 'High' : (currentScore >= 45 ? 'Medium' : 'Low')}`;
 
-    // also update stake info box
+    // Also update stake info box
     $('stakeInfo').innerText = `Staked amount (contract): ${stakedAmount.toFixed(6)} ETH\nUnlock time: ${stakedUnlock>0?new Date(stakedUnlock*1000).toLocaleString():'—'}`;
 
   } catch(err){
@@ -278,7 +293,8 @@ Last active: ${Math.round(lastActiveDaysAgo)} days ago
   }
 }
 
-/* Load stake (contract) info to display */
+// Reads current staking information from the contract.
+// Displays staked amount and unlock date in the UI.
 async function loadStakeInfo(){
   try{
     const info = await contract.methods.getStake(account).call();
@@ -293,7 +309,9 @@ async function loadStakeInfo(){
   }
 }
 
-/* ----- STAKE UI: preview, stake, withdraw ----- */
+// Live stake preview:
+// Calculates the effect of amount × days on projected credit score
+// and shows a simple bonus preview before user confirms.
 function previewStake(){
   const amt = parseFloat($('stakeAmount').value) || 0;
   const days = parseFloat($('stakeDays').value) || 0;
@@ -301,6 +319,9 @@ function previewStake(){
   $('stakePreview').innerText = bonus > 0 ? `Projected Score: ${currentScore} → ${Math.min(100, currentScore + bonus)}  ( +${bonus.toFixed(2)} )` : '';
 }
 
+// Execute a stake transaction:
+// Sends ETH along with lock period (days) to the contract.
+// Updates UI and refreshes analysis after confirmation.
 async function doStake(){
   const out = $('stakeStatus');
   const amt = parseFloat($('stakeAmount').value);
@@ -319,6 +340,9 @@ async function doStake(){
   }
 }
 
+// Execute a withdraw transaction:
+// Unlocks previously staked ETH (if lock expired).
+// Refreshes staking info and credit score.
 async function doWithdraw(){
   const out = $('stakeStatus');
   setSmallStatus(out, 'Sending withdraw tx — confirm in MetaMask...', 'info');
@@ -333,7 +357,9 @@ async function doWithdraw(){
   }
 }
 
-/* ----- BORROW hint and proposal generation ----- */
+// Loan hint calculator:
+// Uses last wallet analysis to suggest repayment terms,
+// interest rate, and payment schedule based on requested inputs.
 function updateLoanHint(){
   const amt = parseFloat($('borrowAmount').value) || 0;
   const deposit = parseFloat($('borrowDeposit').value) || 0;
@@ -341,8 +367,8 @@ function updateLoanHint(){
   const freq = parseInt($('paymentsPerYear').value) || 12;
   const box = $('loanHintBox');
 
-  // derive loan hint using lastReport values (we computed interest & loanLimit in analyze)
-  // parse loan limit & interest from lastReport (naive)
+  // Derive loan hint using lastReport values
+  // Parse loan limit & interest from lastReport
   let loanLimit = 0, suggestedInterest = 12, suggestedDays = 30;
   try{
     const matchLimit = lastReport.match(/Loan limit \(approx\): ([0-9.]+) ETH/);
@@ -373,10 +399,14 @@ function updateLoanHint(){
 
   box.innerText =
 `Loan hint (preview):\n• Pool loan limit (approx): ${loanLimit.toFixed(6)} ETH\n• Adjusted annual interest: ${adjustedInterest.toFixed(2)}%\n• Principal after deposit: ${principal.toFixed(6)} ETH\n• Payments: ${nPeriods} periods (${freq} / year)\n• Periodic payment: ${periodicPayment.toFixed(6)} ETH\n• Total repay (approx): ${totalRepay.toFixed(6)} ETH\n`;
-  // store preview on element
+  // Store preview on element
   box.dataset.preview = JSON.stringify({ amt, deposit, years, freq, principal, adjustedInterest, periodicPayment, nPeriods, totalRepay });
 }
 
+// Generates and signs a loan proposal:
+// - Builds payload with borrower details, score, and repayment schedule
+// - Signs it using personal.sign or eth_sign for authenticity
+// - Publishes proposal to blockchain as a 0-ETH transaction to recipient
 async function doGenerateLoan(){
   const out = $('borrowResult');
   const data = $('loanHintBox').dataset.preview;
@@ -403,12 +433,12 @@ async function doGenerateLoan(){
       nonce: Date.now()
     };
 
-    // sign payload (personal.sign) so recipient can verify borrower signature
+    // Sign payload (personal.sign) so recipient can verify borrower signature
     let signature = null;
     try{
       signature = await web3.eth.personal.sign(JSON.stringify(payload), account);
     } catch(e){
-      // some providers may not have personal.sign; try eth_sign as fallback
+      // Some providers may not have personal.sign; try eth_sign as fallback
       try{
         signature = await web3.eth.sign(web3.utils.sha3(JSON.stringify(payload)), account);
       }catch(er){
@@ -431,7 +461,8 @@ async function doGenerateLoan(){
   }
 }
 
-/* PUBLISH: put fullReport on chain (utf8 hex) */
+// Publishes the full credit report to chain as UTF-8 hex.
+// Stores it in transaction data for permanent, verifiable proof.
 async function doPublish(){
   const out = $('hashStatus');
   const reportText = $('fullReport').value || lastReport || '';

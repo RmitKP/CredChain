@@ -3,25 +3,38 @@
 <head>
   <meta charset="utf-8" />
   <title>CredChain — Real Wallet Data (Sepolia)</title>
+
+  <!-- Load Web3.js: Essential library to interact with Ethereum blockchain -->
   <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+  <!-- Main application card -->
+  <!-- Encapsulates all UI elements in a clean container -->
   <div class="card">
     <h1>CredChain</h1>
     <p class="muted">Advanced on-chain credit scoring with real wallet data — Sepolia</p>
 
+    <!-- Wallet connection section: Enables user to connect MetaMask/other Web3 wallets -->
     <div style="margin-top:10px">
       <button id="connectBtn">Connect Wallet</button>
+
+      <!-- Displays network hint (ensures user is on Sepolia) -->
       <span id="netHint" class="muted" style="margin-left:12px"></span>
       <div style="float:right"><span id="status" class="muted"></span></div>
     </div>
 
+    <!-- Main area: Hidden until wallet is connected -->
     <div id="main" style="display:none;margin-top:16px">
+
+      <!-- Show connected wallet address -->
       <div class="muted">Wallet: <strong id="walletAddr"></strong></div>
 
+      <!-- Dynamic box: Will display calculated credit score -->
       <div id="scoreBox" class="box">Score will appear here after analysis</div>
 
+      <!-- Primary action buttons: Stake, Borrow, or Publish data -->
       <div style="margin-top:12px">
         <button id="btnStake">Stake ETH</button>
         <button id="btnBorrow" class="ghost">Borrow</button>
@@ -31,12 +44,16 @@
   </div>
 
   <!-- STAKE MODAL -->
+  <!-- Allows users to lock ETH in smart contract for credit scoring -->
   <div id="stakeModal" class="modal">
     <div class="modal-content">
+
+      <!-- Close button -->
       <span class="close" data-close="stakeModal">&times;</span>
       <h3>Stake ETH (on-chain)</h3>
       <p class="muted">Staking contract: <code id="contractAddr"></code></p>
 
+      <!-- Stake input fields (ETH + lockup period) -->
       <div class="grid2">
         <div>
           <label>Amount (ETH)</label>
@@ -48,15 +65,19 @@
         </div>
       </div>
 
+      <!-- Live preview of stake conditions (before confirming) -->
       <div id="stakePreview" class="status-line"></div>
 
+      <!-- Stake action buttons -->
       <div style="margin-top:12px">
         <button id="stakeConfirm">Stake → Contract</button>
         <button id="stakeWithdraw" class="ghost">Withdraw (if unlocked)</button>
       </div>
 
+      <!-- Feedback box for user actions (success, errors, tx hash) -->
       <div id="stakeStatus" class="box muted"></div>
 
+      <!-- User’s current stake info pulled directly from contract -->
       <div style="margin-top:14px">
         <p class="muted">Your recorded stake (from contract):</p>
         <div id="stakeInfo" class="box muted">Loading...</div>
@@ -65,11 +86,13 @@
   </div>
 
   <!-- BORROW MODAL -->
+  <!-- Simulates decentralized borrowing (proposal only, no live contract yet) -->
   <div id="borrowModal" class="modal">
     <div class="modal-content">
       <span class="close" data-close="borrowModal">&times;</span>
       <h3>Borrow Simulator (Proposed Contract)</h3>
 
+      <!-- Loan inputs: request amount + deposit -->
       <div class="grid2">
         <div>
           <label>Request Amount (ETH)</label>
@@ -81,6 +104,7 @@
         </div>
       </div>
 
+      <!-- Loan term inputs: years + payment frequency -->
       <div class="grid2">
         <div>
           <label>Loan Term (years)</label>
@@ -98,37 +122,47 @@
         </div>
       </div>
 
+      <!-- Target recipient of loan proposal -->
       <label>Recipient Wallet (where proposal will be published)</label>
       <input id="borrowRecipient" type="text" placeholder="0xRecipientAddress">
 
+      <!-- Live loan evaluation/hint to guide user -->
       <div class="mutebox" id="loanHintBox">Loan hint will appear here as you type...</div>
 
+      <!-- Borrow action button -->
       <div style="margin-top:12px">
         <button id="borrowSignBtn">Generate, Sign & Publish Proposal</button>
       </div>
 
+      <!-- Result box: shows signed message or proposal transaction -->
       <div id="borrowResult" class="box muted"></div>
     </div>
   </div>
 
   <!-- HASH MODAL -->
+  <!-- Allows publishing of full credit report as 0-ETH transaction with UTF-8 payload -->
   <div id="hashModal" class="modal">
     <div class="modal-content">
       <span class="close" data-close="hashModal">&times;</span>
       <h3>Publish Full Credit Report</h3>
 
+      <!-- Explains mechanism: Encoding full report on-chain (viewable on Etherscan) -->
       <p class="muted">This displays the full report (detailed metrics). If you publish, a readable UTF-8 hex input containing the report will be sent as a 0-ETH transaction (decodable on Etherscan).</p>
 
+      <!-- Text area: full report contents -->
       <textarea id="fullReport" rows="12" style="width:100%;font-family:monospace"></textarea>
 
+      <!-- Publish action -->
       <div style="margin-top:12px">
         <button id="publishBtn">Generate & Publish</button>
       </div>
 
+      <!-- Status/feedback box -->
       <div id="hashStatus" class="box muted"></div>
     </div>
   </div>
 
+  <!-- Core application logic: Manages blockchain interaction and UI events -->
   <script src="script.js"></script>
 </body>
 </html>

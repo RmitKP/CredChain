@@ -3,37 +3,59 @@
 pragma solidity ^0.8.20;
 
 contract SimpleStaking {
+    // Each user has a Stake struct containing the staked amount and unlock time
     struct Stake {
-        uint256 amount;
-        uint256 unlockTime;
+        uint256 amount;       // Amount of ETH staked
+        uint256 unlockTime;   // Timestamp after which funds can be withdrawn
     }
 
+    // Mapping to keep track of each user's stake
     mapping(address => Stake) public stakes;
 
+    // Events for logging staking and withdrawals
     event Staked(address indexed user, uint256 amount, uint256 unlockTime);
     event Withdrawn(address indexed user, uint256 amount);
 
+    // @dev Stake ETH for a certain number of days.
+    // @param daysLock The number of days the ETH should remain locked.
+    // Requirements:
+    // - Must send ETH with the transaction.
+    // - User must not already have an active stake.
     function stake(uint256 daysLock) external payable {
         require(msg.value > 0, "Must stake ETH");
         require(stakes[msg.sender].amount == 0, "Already staking");
 
+        // Calculate unlock time
         uint256 unlock = block.timestamp + (daysLock * 1 days);
+
+        // Save stake info for sender
         stakes[msg.sender] = Stake(msg.value, unlock);
 
         emit Staked(msg.sender, msg.value, unlock);
     }
 
+    // @dev Withdraw staked ETH after lock period expires.
+    // Requirements:
+    // - User must have an active stake.
+    // - Current time must be >= unlock time.
     function withdraw() external {
         Stake memory s = stakes[msg.sender];
         require(s.amount > 0, "Nothing staked");
         require(block.timestamp >= s.unlockTime, "Still locked");
 
+        // Clear stake record
         delete stakes[msg.sender];
+
+        // Transfer ETH back to user
         payable(msg.sender).transfer(s.amount);
 
         emit Withdrawn(msg.sender, s.amount);
     }
 
+    // @dev Get stake details for a specific user.
+    // @param user Address of the user to query.
+    // @return amount The staked ETH amount.
+    // @return unlockTime The unlock timestamp.
     function getStake(address user) external view returns (uint256 amount, uint256 unlockTime) {
         Stake memory s = stakes[user];
         return (s.amount, s.unlockTime);
