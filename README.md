@@ -29,14 +29,14 @@ Follow these steps to set up and run the project:
    - The project will automatically open in your default browser.  
 
 4. **Wallet Acess**
-   - Create new wallet on Metamask
-   - Turn on testnet network on both Metamask and Phatom. 
+   - Create new wallet on an EVM compatible Wallet (Phantom prefered)
+   - Turn on Sepolia testnet network
    - Turn on testnet network for Metamask: https://support.metamask.io/configure/networks/how-to-view-testnets-in-metamask/
-   - Turn on testnet network for Metamask: https://help.phantom.com/hc/en-us/articles/5997313271699-About-devnet-and-tesnet-networks
+   - Turn on testnet network for Phantom: https://help.phantom.com/hc/en-us/articles/5997313271699-About-devnet-and-tesnet-networks
 
    or 
 
-   - login to testing account on both Metamask and Phatom (*Disclaimer, this account is purely for testing on CredChain project, please avoid from using it for other purpose*)
+   - login to testing account (*Disclaimer, this account is purely for testing on CredChain project, please avoid from using it for other purpose*)
       - Wallet address:  0x3dF7f53d08A77d48c76259C30C786Fb299451bA0
       - Recovery Phrase:  
       ![alt text](image.png)
